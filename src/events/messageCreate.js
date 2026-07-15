@@ -68,40 +68,6 @@ const rgCards = new Map([
     },
   ],
 ]);
-const linkCommands = new Map([
-  [
-    '!surge',
-    {
-      title: 'Surge',
-      description: 'Planilha solicitada.',
-      url: 'https://docs.google.com/spreadsheets/d/1b6BoIX8nbRUbU4K7cDIfKjJlCblD7JbB1YM_YJn0pUE/edit?gid=1179037386#gid=1179037386',
-    },
-  ],
-  [
-    '!sol',
-    {
-      title: 'Sol',
-      description: 'Planilha solicitada.',
-      url: 'https://docs.google.com/spreadsheets/d/129qlgoU05zAQXZ4v45yyc5f1PVTvOANuoEHl2LTZz-U/edit?gid=1113052215#gid=1113052215',
-    },
-  ],
-  [
-    '!vak',
-    {
-      title: 'Vaktovia',
-      description: 'Registro de suspensoes.',
-      url: 'https://vaktovia.org/registries/suspensions',
-    },
-  ],
-  [
-    '!vultar',
-    {
-      title: 'Vultar',
-      description: 'Registro de suspensoes.',
-      url: 'https://vultar.org/suspensions',
-    },
-  ],
-]);
 
 export async function execute(message) {
   if (message.author.bot) {
@@ -142,22 +108,6 @@ export async function execute(message) {
 
   if (rgCard) {
     await sendRgCard(message, rgCard);
-    return;
-  }
-
-  const linkCommand = linkCommands.get(lowerContent);
-
-  if (linkCommand) {
-    await message.channel.send({
-      embeds: [
-        createEmbed({
-          title: linkCommand.title,
-          description: `${linkCommand.description}\n\n[Abrir link](${linkCommand.url})`,
-          url: linkCommand.url,
-          color: 'info',
-        }),
-      ],
-    });
     return;
   }
 
@@ -241,7 +191,6 @@ function isBlacklistedUser(userId) {
 function isBotTextCommand(lowerContent) {
   return (
     rgCards.has(lowerContent) ||
-    linkCommands.has(lowerContent) ||
     isTextCommand(lowerContent, '!dm') ||
     isTextCommand(lowerContent, '!reuniao') ||
     isTextCommand(lowerContent, '!addreuniao') ||
