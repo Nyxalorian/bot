@@ -46,7 +46,7 @@ async function main() {
       GuildTextThreadManager: 25,
       GuildForumThreadManager: 25,
     }),
-    partials: [Partials.Channel],
+    partials: [Partials.Channel, Partials.Message],
     sweepers: {
       ...Options.DefaultSweeperSettings,
       messages: {

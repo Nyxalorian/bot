@@ -1,5 +1,6 @@
 import { Events } from 'discord.js';
 import { config } from '../config.js';
+import { logCommandUsage } from '../services/auditLog.js';
 import {
   handleMeetingPanelInteraction,
   isMeetingPanelInteraction,
@@ -38,6 +39,17 @@ export async function execute(interaction, client) {
     return;
   }
 
+  logCommandUsage({
+    client,
+    user: interaction.user,
+    guild: interaction.guild,
+    channel: interaction.channel,
+    command: `/${interaction.commandName}`,
+    details: formatSlashCommandDetails(interaction),
+  }).catch((error) => {
+    console.error('Falha ao registrar uso de slash command:', error);
+  });
+
   try {
     await command.execute(interaction);
   } catch (error) {
@@ -60,6 +72,14 @@ export async function execute(interaction, client) {
 
     await interaction.reply(reply);
   }
+}
+
+function formatSlashCommandDetails(interaction) {
+  const options = interaction.options.data
+    .map((option) => `${option.name}: ${option.value ?? '[subcomando]'}`)
+    .join(', ');
+
+  return options ? `/${interaction.commandName} ${options}` : `/${interaction.commandName}`;
 }
 
 async function replyBlockedInteraction(interaction) {

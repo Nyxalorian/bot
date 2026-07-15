@@ -1,6 +1,5 @@
 import { getGoodMorningScheduleStats } from './goodMorning.js';
 import { getMeetingRoomStats } from './meetingRoom.js';
-import { getMessiEveningScheduleStats } from './messiEvening.js';
 
 const defaultIntervalMs = 60_000;
 const minimumIntervalMs = 10_000;
@@ -48,7 +47,6 @@ function logMemoryDiagnostics(client, phase) {
       collectors: 0,
       dbConnections: 0,
       goodMorning: getGoodMorningScheduleStats(),
-      messiEvening: getMessiEveningScheduleStats(),
       meetingRooms: getMeetingRoomStats(),
       diagnostics: getMemoryDiagnosticsStats(),
     },

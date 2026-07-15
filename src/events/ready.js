@@ -1,6 +1,5 @@
 import { ActivityType, Events } from 'discord.js';
 import { startGoodMorningSchedule } from '../services/goodMorning.js';
-import { startMessiEveningSchedule } from '../services/messiEvening.js';
 import {
   fetchGuardianMembers,
   removeGuardianChatMute,
@@ -20,7 +19,6 @@ export function execute(client) {
 
   console.log(`Zeca e Mimo online como ${client.user.tag}.`);
   startGoodMorningSchedule(client);
-  startMessiEveningSchedule(client);
   restoreGuardianInGuilds(client).catch((error) => {
     console.error('Falha na checagem inicial do guardiao:', error);
   });

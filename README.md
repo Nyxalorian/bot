@@ -24,6 +24,7 @@ DISCORD_CLIENT_ID=...
 DISCORD_GUILD_ID=...
 GOOD_MORNING_CHANNEL_ID=1526051855480918128
 GOOD_MORNING_TIME_ZONE=America/Sao_Paulo
+LOG_CHANNEL_ID=1527085539269021838
 HARD_BAN_MANAGER_ROLE_ID=1520801193033470083
 DM_MANAGER_ROLE_ID=1520801193033470083
 UNNAME_MANAGER_ROLE_ID=1520801193033470083
@@ -107,6 +108,10 @@ Se alguem tentar entrar na call sem ter sido adicionado, o bot remove a pessoa e
 O Discord nao permite remover diretamente a permissao **Change Nickname** de um usuario especifico. O `!unname` faz o equivalente pratico: guarda o apelido atual e restaura automaticamente se a pessoa tentar trocar. O bot precisa da permissao **Manage Nicknames** e cargo acima do alvo.
 
 O cooldown de mensagens apaga mensagens enviadas antes do tempo definido. O bot precisa da permissao **Manage Messages**.
+
+## Logs
+
+O canal `LOG_CHANNEL_ID` (`1527085539269021838` por padrao) recebe logs de auditoria do bot: mensagens apagadas, imagens/anexos apagados, trocas de nome global ou apelido, uso de comandos do Zeca e Mimo e timeouts aplicados pelo bot. O bot precisa conseguir ver e enviar mensagens nesse canal.
 
 O comando especial `!add`/`!remove` precisa da permissao **Manage Roles**. O bot so mexe em cargos abaixo do cargo configurado em `SPECIAL_ROLE_LIMIT_ROLE_ID` (`1526051649423147011` por padrao), e o cargo real mais alto do bot tambem precisa ficar acima do cargo que sera adicionado ou removido.
 

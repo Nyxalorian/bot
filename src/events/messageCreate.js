@@ -2,6 +2,10 @@ import { AttachmentBuilder, Events, PermissionFlagsBits } from 'discord.js';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { config } from '../config.js';
+import {
+  logCommandUsage,
+  rememberMessageForAuditLog,
+} from '../services/auditLog.js';
 import { moderateGoodMorningChannelMessage } from '../services/goodMorningModeration.js';
 import {
   addMembersToMeetingRoom,
@@ -83,6 +87,7 @@ export async function execute(message) {
 
   const content = message.content.trim();
   const lowerContent = content.toLowerCase();
+  rememberMessageForAuditLog(message);
 
   if (await moderateGoodMorningChannelMessage(message)) {
     return;
@@ -94,6 +99,12 @@ export async function execute(message) {
 
   if (isBlacklistedUser(message.author.id) && isBotTextCommand(lowerContent)) {
     return;
+  }
+
+  if (isBotTextCommand(lowerContent)) {
+    logTextCommandUsage(message, content).catch((error) => {
+      console.error('Falha ao registrar uso de comando de texto:', error);
+    });
   }
 
   const rgCard = rgCards.get(lowerContent);
@@ -183,6 +194,23 @@ function isBotTextCommand(lowerContent) {
     isTextCommand(lowerContent, '!message') ||
     isTextCommand(lowerContent, '!unmessage')
   );
+}
+
+async function logTextCommandUsage(message, content) {
+  const command = content.split(/\s+/)[0]?.toLowerCase();
+
+  if (!command) {
+    return;
+  }
+
+  await logCommandUsage({
+    client: message.client,
+    user: message.author,
+    guild: message.guild,
+    channel: message.channel,
+    command,
+    details: content,
+  });
 }
 
 async function handleMeetingCommand(message, content) {

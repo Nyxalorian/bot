@@ -20,14 +20,10 @@ export const config = {
   goodMorningChannelId:
     readEnv('GOOD_MORNING_CHANNEL_ID') || '1526051855480918128',
   goodMorningTimeZone: readEnv('GOOD_MORNING_TIME_ZONE') || 'America/Sao_Paulo',
-  messiChannelId:
-    readEnv('MESSI_CHANNEL_ID') ||
-    readEnv('GOOD_MORNING_CHANNEL_ID') ||
-    '1526051855480918128',
-  messiTimeZone:
-    readEnv('MESSI_TIME_ZONE') ||
-    readEnv('GOOD_MORNING_TIME_ZONE') ||
-    'America/Sao_Paulo',
+  logChannelId:
+    readEnv('LOG_CHANNEL_ID') ||
+    readEnv('AUDIT_LOG_CHANNEL_ID') ||
+    '1527085539269021838',
   hardBanManagerRoleId:
     readEnv('HARD_BAN_MANAGER_ROLE_ID') || '1520801193033470083',
   dmManagerRoleId:

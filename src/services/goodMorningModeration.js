@@ -1,5 +1,6 @@
 import { PermissionFlagsBits } from 'discord.js';
 import { config } from '../config.js';
+import { logBotTimeout } from './auditLog.js';
 
 const muteDurationMs = 5 * 60 * 1000;
 const expectedMessagePattern = /^bom\s+dia\s+zeca\s+e\s+mimo[.!?]*$/;
@@ -99,6 +100,13 @@ async function timeoutAuthor(message, violation) {
       muteDurationMs,
       `Canal Bom dia Zeca e Mimo: ${violation}`,
     );
+
+    await logBotTimeout({
+      client: message.client,
+      member,
+      durationMs: muteDurationMs,
+      reason: `Canal Bom dia Zeca e Mimo: ${violation}`,
+    });
 
     console.log(
       `Mute de 5 minutos aplicado em ${message.author.tag} no canal de bom dia: ${violation}.`,
