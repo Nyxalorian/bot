@@ -100,7 +100,7 @@ Para comandos com `!`, ative o intent **Message Content** no Discord Developer P
 
 Para as reunioes temporarias, o bot precisa das permissoes **Manage Channels** e **Move Members**. A call e apagada se ninguem entrar em 30 segundos, ou se ficar vazia por 30 segundos depois. Se alguem entrar sem permissao explicita na reuniao, inclusive administrador furando as permissoes do canal, o bot remove a pessoa da call. O `!addreuniao` e o `!removereuniao` funcionam melhor quando usados por alguem que ja tem acesso a call; se houver mais de uma reuniao ativa para a pessoa, ela deve entrar na call certa antes de usar o comando.
 
-Quem cria a reuniao recebe uma DM com um painel de administracao. Pelo painel, o dono da reuniao pode atualizar participantes/tempo, mutar e desmutar participantes da call, adicionar pessoas por ID ou mencao, remover participantes, pausar a reuniao aplicando deafen nos participantes, retomar a reuniao e encerrar a call. O bot tambem aplica deafen automaticamente em quem entrar enquanto a reuniao estiver pausada.
+Quem cria a reuniao recebe uma DM com um painel de administracao. Pelo painel, o dono da reuniao pode atualizar participantes/tempo, mutar e desmutar participantes da call, adicionar pessoas por ID ou mencao, remover participantes, pausar a reuniao aplicando mute e deafen nos participantes, retomar a reuniao e encerrar a call. O bot tambem aplica mute e deafen automaticamente em quem entrar enquanto a reuniao estiver pausada.
 
 O Discord nao permite remover diretamente a permissao **Change Nickname** de um usuario especifico. O `!unname` faz o equivalente pratico: guarda o apelido atual e restaura automaticamente se a pessoa tentar trocar. O bot precisa da permissao **Manage Nicknames** e cargo acima do alvo.
 

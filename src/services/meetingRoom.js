@@ -14,7 +14,9 @@ import {
 import { config } from '../config.js';
 import {
   allowGuardianVoiceDeafen,
+  allowGuardianVoiceMute,
   clearGuardianVoiceDeafenAllowance,
+  clearGuardianVoiceMuteAllowance,
   isGuardianUserId,
 } from './guardianProtection.js';
 
@@ -610,6 +612,7 @@ async function removeMeetingMembersFromPanel(channel, state, userIds, actorTag) 
     }
 
     state.allowedUserIds.delete(userId);
+    clearGuardianVoiceMuteAllowance(channel.guild.id, userId);
     clearGuardianVoiceDeafenAllowance(channel.guild.id, userId);
 
     if (hasExplicitMemberAccess(channel, userId)) {
@@ -645,32 +648,38 @@ async function setMeetingMembersMute(channel, userIds, muted, actorTag) {
 }
 
 async function pauseMeeting(channel, state, actorTag) {
+  assertCanMuteMembersInMeetingChannel(channel);
   assertCanDeafenMembersInMeetingChannel(channel);
   state.paused = true;
 
   for (const member of channel.members.values()) {
-    if (member.user.bot) {
-      continue;
-    }
-
-    if (!member.voice.serverDeaf) {
-      state.pausedDeafenedUserIds.add(member.id);
-    }
-
-    if (isGuardianUserId(member.id)) {
-      allowGuardianVoiceDeafen(channel.guild.id, member.id, channel.id);
-    }
-
-    await member.voice.setDeaf(
-      true,
+    await applyPauseToMember(
+      channel,
+      state,
+      member,
       `Reuniao pausada pelo painel por ${actorTag}`,
     );
   }
 }
 
 async function resumeMeeting(channel, state, actorTag) {
+  assertCanMuteMembersInMeetingChannel(channel);
   assertCanDeafenMembersInMeetingChannel(channel);
   state.paused = false;
+
+  for (const userId of state.pausedMutedUserIds) {
+    clearGuardianVoiceMuteAllowance(channel.guild.id, userId);
+    const member = channel.members.get(userId);
+
+    if (!member) {
+      continue;
+    }
+
+    await member.voice.setMute(
+      false,
+      `Reuniao retomada pelo painel por ${actorTag}`,
+    );
+  }
 
   for (const userId of state.pausedDeafenedUserIds) {
     clearGuardianVoiceDeafenAllowance(channel.guild.id, userId);
@@ -686,7 +695,34 @@ async function resumeMeeting(channel, state, actorTag) {
     );
   }
 
+  state.pausedMutedUserIds.clear();
   state.pausedDeafenedUserIds.clear();
+}
+
+async function applyPauseToMember(channel, state, member, reason) {
+  if (member.user.bot) {
+    return;
+  }
+
+  if (!member.voice.serverMute) {
+    state.pausedMutedUserIds.add(member.id);
+
+    if (isGuardianUserId(member.id)) {
+      allowGuardianVoiceMute(channel.guild.id, member.id, channel.id);
+    }
+
+    await member.voice.setMute(true, reason);
+  }
+
+  if (!member.voice.serverDeaf) {
+    state.pausedDeafenedUserIds.add(member.id);
+
+    if (isGuardianUserId(member.id)) {
+      allowGuardianVoiceDeafen(channel.guild.id, member.id, channel.id);
+    }
+
+    await member.voice.setDeaf(true, reason);
+  }
 }
 
 async function endMeetingFromPanel(interaction, channel, state) {
@@ -883,6 +919,7 @@ function trackMeetingRoom(channelId, guildId, allowedUserIds, options = {}) {
     createdAt: options.createdAt ?? Date.now(),
     hasBeenOccupied: Boolean(options.hasBeenOccupied),
     paused: false,
+    pausedMutedUserIds: new Set(),
     pausedDeafenedUserIds: new Set(),
     panelChannelId: null,
     panelMessageId: null,
@@ -1037,21 +1074,24 @@ async function handlePausedMeetingJoin(voiceState) {
 
   const state = meetingRooms.get(channel.id);
 
-  if (!state.paused || voiceState.member?.user.bot || voiceState.serverDeaf) {
+  if (!state.paused || voiceState.member?.user.bot) {
     return;
   }
 
   try {
+    assertCanMuteMembersInMeetingChannel(channel);
     assertCanDeafenMembersInMeetingChannel(channel);
 
-    if (isGuardianUserId(voiceState.id)) {
-      allowGuardianVoiceDeafen(channel.guild.id, voiceState.id, channel.id);
+    if (voiceState.member) {
+      await applyPauseToMember(
+        channel,
+        state,
+        voiceState.member,
+        'Entrou em reuniao pausada',
+      );
     }
-
-    state.pausedDeafenedUserIds.add(voiceState.id);
-    await voiceState.setDeaf(true, 'Entrou em reuniao pausada');
   } catch (error) {
-    console.error(`Falha ao aplicar deafen em ${voiceState.id} na reuniao pausada:`, error);
+    console.error(`Falha ao aplicar mute/deafen em ${voiceState.id} na reuniao pausada:`, error);
   }
 }
 
@@ -1155,10 +1195,15 @@ function clearMeetingTimer(state) {
 }
 
 function cleanupMeetingPauseState(guildId, state) {
+  for (const userId of state.pausedMutedUserIds) {
+    clearGuardianVoiceMuteAllowance(guildId, userId);
+  }
+
   for (const userId of state.pausedDeafenedUserIds) {
     clearGuardianVoiceDeafenAllowance(guildId, userId);
   }
 
+  state.pausedMutedUserIds.clear();
   state.pausedDeafenedUserIds.clear();
 }
 

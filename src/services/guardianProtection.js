@@ -8,42 +8,28 @@ const voiceAuditLogAttempts = 8;
 const voiceAuditLogRetryDelayMs = 1_000;
 const voiceDisconnectAuditLogWindowMs = 30_000;
 const handledVoiceDisconnectAuditEntryIds = new Set();
+const allowedGuardianVoiceMutes = new Map();
 const allowedGuardianVoiceDeafens = new Map();
-const guardianVoiceDeafenAllowanceMs = 12 * 60 * 60 * 1000;
+const guardianVoiceStateAllowanceMs = 12 * 60 * 60 * 1000;
 
 export function isGuardianUserId(userId) {
   return config.guardianUserIds.includes(userId);
 }
 
 export function allowGuardianVoiceDeafen(guildId, userId, channelId) {
-  if (!isGuardianUserId(userId)) {
-    return;
-  }
+  allowGuardianVoiceState(allowedGuardianVoiceDeafens, guildId, userId, channelId);
+}
 
-  const key = getGuardianVoiceDeafenKey(guildId, userId);
-  const existing = allowedGuardianVoiceDeafens.get(key);
-
-  if (existing?.timeout) {
-    clearTimeout(existing.timeout);
-  }
-
-  const timeout = setTimeout(() => {
-    allowedGuardianVoiceDeafens.delete(key);
-  }, guardianVoiceDeafenAllowanceMs);
-  timeout.unref?.();
-
-  allowedGuardianVoiceDeafens.set(key, { channelId, timeout });
+export function allowGuardianVoiceMute(guildId, userId, channelId) {
+  allowGuardianVoiceState(allowedGuardianVoiceMutes, guildId, userId, channelId);
 }
 
 export function clearGuardianVoiceDeafenAllowance(guildId, userId) {
-  const key = getGuardianVoiceDeafenKey(guildId, userId);
-  const existing = allowedGuardianVoiceDeafens.get(key);
+  clearGuardianVoiceStateAllowance(allowedGuardianVoiceDeafens, guildId, userId);
+}
 
-  if (existing?.timeout) {
-    clearTimeout(existing.timeout);
-  }
-
-  allowedGuardianVoiceDeafens.delete(key);
+export function clearGuardianVoiceMuteAllowance(guildId, userId) {
+  clearGuardianVoiceStateAllowance(allowedGuardianVoiceMutes, guildId, userId);
 }
 
 export async function removeGuardianChatMute(member) {
@@ -104,6 +90,10 @@ export async function removeGuardianVoiceMute(voiceState) {
     !isGuardianUserId(voiceState.id) ||
     !voiceState.serverMute
   ) {
+    return false;
+  }
+
+  if (isAllowedGuardianVoiceState(allowedGuardianVoiceMutes, voiceState)) {
     return false;
   }
 
@@ -444,13 +434,45 @@ function rememberVoiceDisconnectAuditEntry(entryId) {
 }
 
 function isAllowedGuardianVoiceDeafen(voiceState) {
-  const allowed = allowedGuardianVoiceDeafens.get(
-    getGuardianVoiceDeafenKey(voiceState.guild.id, voiceState.id),
-  );
+  return isAllowedGuardianVoiceState(allowedGuardianVoiceDeafens, voiceState);
+}
 
+function isAllowedGuardianVoiceState(allowances, voiceState) {
+  const allowed = allowances.get(getGuardianVoiceStateKey(voiceState.guild.id, voiceState.id));
   return Boolean(allowed && allowed.channelId === voiceState.channelId);
 }
 
-function getGuardianVoiceDeafenKey(guildId, userId) {
+function allowGuardianVoiceState(allowances, guildId, userId, channelId) {
+  if (!isGuardianUserId(userId)) {
+    return;
+  }
+
+  const key = getGuardianVoiceStateKey(guildId, userId);
+  const existing = allowances.get(key);
+
+  if (existing?.timeout) {
+    clearTimeout(existing.timeout);
+  }
+
+  const timeout = setTimeout(() => {
+    allowances.delete(key);
+  }, guardianVoiceStateAllowanceMs);
+  timeout.unref?.();
+
+  allowances.set(key, { channelId, timeout });
+}
+
+function clearGuardianVoiceStateAllowance(allowances, guildId, userId) {
+  const key = getGuardianVoiceStateKey(guildId, userId);
+  const existing = allowances.get(key);
+
+  if (existing?.timeout) {
+    clearTimeout(existing.timeout);
+  }
+
+  allowances.delete(key);
+}
+
+function getGuardianVoiceStateKey(guildId, userId) {
   return `${guildId}:${userId}`;
 }
