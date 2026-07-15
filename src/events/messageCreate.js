@@ -1,14 +1,6 @@
 import { AttachmentBuilder, Events, PermissionFlagsBits } from 'discord.js';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import {
-  addHardBanPattern,
-  addHardBanPatternsForMember,
-  banMatchingMembers,
-  listHardBanPatterns,
-  removeHardBanPattern,
-  removeHardBanPatternsBySourceUserId,
-} from '../services/hardBan.js';
 import { config } from '../config.js';
 import { moderateGoodMorningChannelMessage } from '../services/goodMorningModeration.js';
 import {
@@ -152,18 +144,7 @@ export async function execute(message) {
     isTextCommand(lowerContent, '!unmessage')
   ) {
     await handleMessageCooldownCommand(message, content);
-    return;
   }
-
-  if (
-    !isTextCommand(lowerContent, '!hardban') &&
-    !isTextCommand(lowerContent, '!unhardban') &&
-    lowerContent !== '!hardbans'
-  ) {
-    return;
-  }
-
-  await handleHardBanCommand(message, content);
 }
 
 async function sendRgCard(message, rgCard) {
@@ -200,10 +181,7 @@ function isBotTextCommand(lowerContent) {
     isTextCommand(lowerContent, '!unname') ||
     isTextCommand(lowerContent, '!allowname') ||
     isTextCommand(lowerContent, '!message') ||
-    isTextCommand(lowerContent, '!unmessage') ||
-    isTextCommand(lowerContent, '!hardban') ||
-    isTextCommand(lowerContent, '!unhardban') ||
-    lowerContent === '!hardbans'
+    isTextCommand(lowerContent, '!unmessage')
   );
 }
 
@@ -809,182 +787,6 @@ async function handleMessageCooldownCommand(message, content) {
     console.error('Erro no comando de cooldown de mensagem:', error);
     await replyError(message, 'Cooldown de mensagens', `Nao consegui executar: ${error.message}`);
   }
-}
-
-async function handleHardBanCommand(message, content) {
-  if (!message.guild) {
-    await replyError(message, 'Hardban', 'Esse comando so funciona dentro de um servidor.');
-    return;
-  }
-
-  const [command, ...args] = content.split(/\s+/);
-  const lowerCommand = command.toLowerCase();
-
-  try {
-    if (lowerCommand === '!hardbans') {
-      await replyHardBanList(message);
-      return;
-    }
-
-    if (!hasRole(message.member, config.hardBanManagerRoleId)) {
-      await replyWarning(message, 'Sem permissao', 'Apenas o cargo autorizado pode usar esse comando.');
-      return;
-    }
-
-    if (lowerCommand === '!unhardban') {
-      await replyHardBanRemoval(message, args);
-      return;
-    }
-
-    if (lowerCommand === '!hardban') {
-      await replyHardBan(message, args);
-    }
-  } catch (error) {
-    console.error('Erro no comando de hardban:', error);
-    await replyError(message, 'Hardban', `Nao consegui executar: ${error.message}`);
-  }
-}
-
-async function replyHardBan(message, args) {
-  const target = args[0];
-
-  if (!target) {
-    await replyInfo(message, 'Como usar', 'Use `!hardban @usuario` ou `!hardban nome`.');
-    return;
-  }
-
-  const mentionId = parseUserId(target);
-
-  if (mentionId) {
-    await assertBotCanBan(message);
-    const member = await message.guild.members.fetch({
-      user: mentionId,
-      cache: false,
-    });
-
-    if (!member.bannable) {
-      await replyWarning(message, 'Hierarquia insuficiente', 'Nao consigo banir esse usuario. Verifique a hierarquia dos cargos.');
-      return;
-    }
-
-    const results = await addHardBanPatternsForMember(
-      message.guild.id,
-      member,
-      message.author.id,
-    );
-    const patterns = results.map((result) => result.pattern.value);
-
-    await member.ban({
-      reason: `Hardban aplicado por ${message.author.tag}`,
-    });
-
-    await replySuccess(
-      message,
-      'Hardban aplicado',
-      'O usuario foi banido e os padroes foram salvos.',
-      [
-        { name: 'Usuario', value: member.user.tag, inline: true },
-        { name: 'Padroes', value: patterns.join(', ') || 'Nenhum', inline: false },
-      ],
-    );
-    return;
-  }
-
-  await assertBotCanBan(message);
-  const { pattern } = await addHardBanPattern(
-    message.guild.id,
-    target,
-    message.author.id,
-  );
-
-  const { banned, skipped } = await banMatchingMembers(
-    message.guild,
-    pattern,
-    message.author.id,
-  );
-  const fields = [
-    { name: 'Padrao', value: pattern.value, inline: true },
-    { name: 'Banidos agora', value: String(banned.length), inline: true },
-  ];
-
-  if (skipped.length > 0) {
-    fields.push({
-      name: 'Ignorados',
-      value: `${skipped.length} membro(s) por cargo/permissao.`,
-      inline: false,
-    });
-  }
-
-  await replySuccess(message, 'Padrao hardbanido', 'O padrao foi salvo.', fields);
-}
-
-async function replyHardBanRemoval(message, args) {
-  const target = args[0];
-
-  if (!target) {
-    await replyInfo(message, 'Como usar', 'Use `!unhardban @usuario` ou `!unhardban nome`.');
-    return;
-  }
-
-  const mentionId = parseUserId(target);
-
-  if (mentionId) {
-    const removedPatterns = await removeHardBanPatternsBySourceUserId(
-      message.guild.id,
-      mentionId,
-    );
-
-    if (removedPatterns.length === 0) {
-      await replyInfo(message, 'Nada para remover', 'Nao encontrei padroes salvos para esse usuario.');
-      return;
-    }
-
-    await replySuccess(
-      message,
-      'Hardban removido',
-      `Removi ${removedPatterns.length} padrao(oes).`,
-      [
-        {
-          name: 'Padroes',
-          value: removedPatterns.map((pattern) => pattern.value).join(', '),
-          inline: false,
-        },
-      ],
-    );
-    return;
-  }
-
-  const removed = await removeHardBanPattern(message.guild.id, target);
-
-  if (removed) {
-    await replySuccess(message, 'Padrao removido', `Padrao removido do hardban: ${target}.`);
-    return;
-  }
-
-  await replyInfo(message, 'Nada para remover', `Nao encontrei esse padrao no hardban: ${target}.`);
-}
-
-async function replyHardBanList(message) {
-  const patterns = await listHardBanPatterns(message.guild.id);
-
-  if (patterns.length === 0) {
-    await replyInfo(message, 'Hardbans', 'Nao tem nenhum padrao de hardban salvo neste servidor.');
-    return;
-  }
-
-  await replyInfo(
-    message,
-    'Padroes de hardban',
-    patterns.map((pattern) => `- ${pattern.value}`).join('\n'),
-  );
-}
-
-async function assertBotCanBan(message) {
-  await assertBotPermission(
-    message,
-    PermissionFlagsBits.BanMembers,
-    'Eu preciso da permissao de banir membros para fazer isso.',
-  );
 }
 
 async function assertBotCanManageNicknames(message) {

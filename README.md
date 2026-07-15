@@ -85,11 +85,6 @@ src/
 - `/sobre`: mostra uma mensagem curta sobre o Zeca e Mimo.
 - `!rg Zeca`: envia a imagem do RG do Zeca no canal.
 - `!rg Mimo`: envia a imagem do RG do Mimo no canal.
-- `!hardban @usuario`: bane o usuario e salva seus nomes como padroes de hardban. Apenas o cargo `1520801193033470083` pode usar.
-- `!hardban nome`: salva um padrao e bane membros atuais com esse texto no nome. Apenas o cargo `1520801193033470083` pode usar.
-- `!unhardban @usuario`: remove os padroes salvos a partir daquele usuario. Apenas o cargo `1520801193033470083` pode usar.
-- `!unhardban nome`: remove um padrao de hardban. Apenas o cargo `1520801193033470083` pode usar.
-- `!hardbans`: lista os padroes salvos. Qualquer pessoa pode usar.
 - `!reuniao @usuario` ou `!reuniao id`: cria uma call temporaria `reuniao` na categoria `1519817688354914367`, liberada para quem chamou e para o usuario indicado.
 - `!addreuniao @usuario`, `!addreuniao id` ou varios usuarios: adiciona pessoas na reuniao temporaria ativa.
 - `!removereuniao @usuario`, `!removereuniao id` ou varios usuarios: remove pessoas da reuniao temporaria ativa e desconecta quem estiver na call.
@@ -103,8 +98,6 @@ src/
 
 Para comandos com `!`, ative o intent **Message Content** no Discord Developer Portal em **Bot > Privileged Gateway Intents**.
 
-Para o hardban automatico, ative tambem o intent **Server Members** no Developer Portal. O bot precisa da permissao **Ban Members**, e o cargo dele deve ficar acima dos cargos que ele precisa banir.
-
 Para as reunioes temporarias, o bot precisa das permissoes **Manage Channels** e **Move Members**. A call e apagada se ninguem entrar em 30 segundos, ou se ficar vazia por 30 segundos depois. Se alguem entrar sem permissao explicita na reuniao, inclusive administrador furando as permissoes do canal, o bot remove a pessoa da call. O `!addreuniao` e o `!removereuniao` funcionam melhor quando usados por alguem que ja tem acesso a call; se houver mais de uma reuniao ativa para a pessoa, ela deve entrar na call certa antes de usar o comando.
 
 O Discord nao permite remover diretamente a permissao **Change Nickname** de um usuario especifico. O `!unname` faz o equivalente pratico: guarda o apelido atual e restaura automaticamente se a pessoa tentar trocar. O bot precisa da permissao **Manage Nicknames** e cargo acima do alvo.
@@ -116,9 +109,6 @@ O comando especial `!add`/`!remove` precisa da permissao **Manage Roles**. O bot
 Usuarios em `BOT_BLACKLISTED_USER_IDS` ou `BLACKLISTED_USER_IDS` nao conseguem usar comandos de texto, slash commands ou responder DMs anonimas pelo bot. O usuario `1489083332506554612` ja vem bloqueado por padrao.
 
 O comando `!dm` nao envia multiplas mensagens repetidas. Se alguem tentar usar um numero maior que 1, o bot recusa para evitar spam. Quando a pessoa responder a DM do bot, a resposta e encaminhada por DM para quem enviou a mensagem anonima original.
-
-O Discord nao disponibiliza IP de usuarios para bots. O ban direto do Discord vale para o ID da conta banida; este hardban extra funciona por padroes de nome salvos em `data/hard-bans.json`, com referencia ao ID da conta original quando o padrao veio de `!hardban @usuario`.
-O hardban e aplicado quando alguem entra no servidor ou altera o nome/apelido para bater com um padrao salvo.
 
 ## Bom dia automatico
 
