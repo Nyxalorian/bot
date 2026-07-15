@@ -166,6 +166,7 @@ export async function addMembersToMeetingRoom(message, invitedMembers) {
     );
 
     state.allowedUserIds.add(invitedMember.id);
+    state.pendingRequests.delete(invitedMember.id);
     result.addedMembers.push(invitedMember);
   }
 
@@ -221,6 +222,7 @@ export async function removeMembersFromMeetingRoom(message, removedMembers) {
     }
 
     state.allowedUserIds.delete(removedMember.id);
+    state.pendingRequests.delete(removedMember.id);
 
     if (hadExplicitAccess) {
       await channel.permissionOverwrites.delete(
@@ -383,6 +385,11 @@ function createMeetingPanelPayload(channel, state, options = {}) {
         inline: false,
       },
       {
+        name: `Pendentes (${state.pendingRequests.size})`,
+        value: formatPendingRequests(state),
+        inline: false,
+      },
+      {
         name: 'Administracao',
         value:
           'Voce e o administrador desta reuniao. Use os controles abaixo para gerenciar a call.',
@@ -430,6 +437,7 @@ function createMeetingPanelComponents(channel, state, participants) {
     createMemberSelectRow(channel, state, 'mute', 'Mutar participante', participants),
     createMemberSelectRow(channel, state, 'unmute', 'Desmutar participante', participants),
     createMemberSelectRow(channel, state, 'remove', 'Remover da reuniao', participants),
+    createPendingSelectRow(channel, state),
   ];
 }
 
@@ -478,6 +486,57 @@ function createMemberSelectOptions(channel, state, action, participants) {
     }));
 }
 
+function createPendingSelectRow(channel, state) {
+  const options = createPendingSelectOptions(state);
+  const hasOptions = options.length > 0;
+  const select = new StringSelectMenuBuilder()
+    .setCustomId(createPanelCustomId('select', 'pending', channel.id))
+    .setPlaceholder('Pendentes: aceitar ou recusar')
+    .setMinValues(1)
+    .setMaxValues(Math.max(1, Math.min(options.length, 5)))
+    .setDisabled(!hasOptions)
+    .addOptions(
+      hasOptions
+        ? options
+        : [
+            {
+              label: 'Nenhum pedido pendente',
+              value: 'none',
+              description: 'Tentativas sem convite aparecem aqui.',
+            },
+          ],
+    );
+
+  return new ActionRowBuilder().addComponents(select);
+}
+
+function createPendingSelectOptions(state) {
+  const options = [];
+
+  for (const request of state.pendingRequests.values()) {
+    const labelName = truncateOptionText(request.displayName || request.tag || request.userId, 72);
+    const waited = formatElapsedTime(Date.now() - request.requestedAt);
+
+    options.push({
+      label: `Aceitar ${labelName}`,
+      value: `accept:${request.userId}`,
+      description: truncateOptionText(`Pedido ha ${waited}`, 100),
+    });
+
+    options.push({
+      label: `Recusar ${labelName}`,
+      value: `deny:${request.userId}`,
+      description: truncateOptionText(`Pedido ha ${waited}`, 100),
+    });
+
+    if (options.length >= 24) {
+      break;
+    }
+  }
+
+  return options;
+}
+
 async function handleMeetingPanelButton(interaction, action, channel, state) {
   if (action === 'refresh') {
     await updatePanelInteraction(interaction, channel, state);
@@ -522,6 +581,10 @@ async function handleMeetingPanelSelect(interaction, action, channel, state) {
 
   if (action === 'remove') {
     await removeMeetingMembersFromPanel(channel, state, userIds, interaction.user.tag);
+  }
+
+  if (action === 'pending') {
+    await handlePendingMeetingRequests(channel, state, interaction.values, interaction.user.tag);
   }
 
   await updatePanelInteraction(interaction, channel, state);
@@ -596,10 +659,45 @@ async function addMeetingMembersFromPanel(channel, state, userIds, actorTag) {
     );
 
     state.allowedUserIds.add(member.id);
+    state.pendingRequests.delete(member.id);
     result.added.push(member.user.tag);
   }
 
   return result;
+}
+
+async function handlePendingMeetingRequests(channel, state, values, actorTag) {
+  const acceptedUserIds = new Set();
+  const deniedUserIds = new Set();
+
+  for (const value of values) {
+    const [decision, userId] = value.split(':');
+
+    if (!userId || !state.pendingRequests.has(userId)) {
+      continue;
+    }
+
+    if (decision === 'accept') {
+      acceptedUserIds.add(userId);
+      continue;
+    }
+
+    if (decision === 'deny') {
+      deniedUserIds.add(userId);
+    }
+  }
+
+  for (const userId of acceptedUserIds) {
+    deniedUserIds.delete(userId);
+  }
+
+  for (const userId of deniedUserIds) {
+    state.pendingRequests.delete(userId);
+  }
+
+  if (acceptedUserIds.size > 0) {
+    await addMeetingMembersFromPanel(channel, state, [...acceptedUserIds], actorTag);
+  }
 }
 
 async function removeMeetingMembersFromPanel(channel, state, userIds, actorTag) {
@@ -840,6 +938,24 @@ function formatParticipantList(participants) {
   return visibleParticipants.join('\n');
 }
 
+function formatPendingRequests(state) {
+  const requests = [...state.pendingRequests.values()];
+
+  if (requests.length === 0) {
+    return 'Nenhum pedido pendente.';
+  }
+
+  const visibleRequests = requests.slice(0, 10).map((request) => {
+    return `<@${request.userId}> aguardando ha ${formatElapsedTime(Date.now() - request.requestedAt)}`;
+  });
+
+  if (requests.length > visibleRequests.length) {
+    visibleRequests.push(`+ ${requests.length - visibleRequests.length} outros`);
+  }
+
+  return visibleRequests.join('\n');
+}
+
 function formatElapsedTime(elapsedMs) {
   const totalSeconds = Math.max(0, Math.floor(elapsedMs / 1000));
   const hours = Math.floor(totalSeconds / 3600);
@@ -921,6 +1037,7 @@ function trackMeetingRoom(channelId, guildId, allowedUserIds, options = {}) {
     paused: false,
     pausedMutedUserIds: new Set(),
     pausedDeafenedUserIds: new Set(),
+    pendingRequests: new Map(),
     panelChannelId: null,
     panelMessageId: null,
     deleteTimer: null,
@@ -1125,9 +1242,11 @@ async function rejectUnauthorizedMeetingJoin(voiceState) {
   }
 
   try {
+    rememberPendingMeetingRequest(state, member);
     await voiceState.disconnect('Entrou em reuniao temporaria sem convite');
+    await updateStoredPanelMessage(channel.client, channel, state);
     console.log(
-      `Membro ${member.user.tag} removido da reuniao ${channel.id}: sem convite pelo !addreuniao.`,
+      `Membro ${member.user.tag} removido da reuniao ${channel.id} e marcado como pendente.`,
     );
   } catch (error) {
     console.error(`Falha ao remover ${member.user.tag} da reuniao ${channel.id}:`, error);
@@ -1192,6 +1311,15 @@ function clearMeetingTimer(state) {
     clearTimeout(state.deleteTimer);
     state.deleteTimer = null;
   }
+}
+
+function rememberPendingMeetingRequest(state, member) {
+  state.pendingRequests.set(member.id, {
+    userId: member.id,
+    displayName: member.displayName,
+    tag: member.user.tag,
+    requestedAt: Date.now(),
+  });
 }
 
 function cleanupMeetingPauseState(guildId, state) {

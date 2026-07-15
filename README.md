@@ -102,6 +102,8 @@ Para as reunioes temporarias, o bot precisa das permissoes **Manage Channels** e
 
 Quem cria a reuniao recebe uma DM com um painel de administracao. Pelo painel, o dono da reuniao pode atualizar participantes/tempo, mutar e desmutar participantes da call, adicionar pessoas por ID ou mencao, remover participantes, pausar a reuniao aplicando mute e deafen nos participantes, retomar a reuniao e encerrar a call. O bot tambem aplica mute e deafen automaticamente em quem entrar enquanto a reuniao estiver pausada.
 
+Se alguem tentar entrar na call sem ter sido adicionado, o bot remove a pessoa e registra o pedido como pendente no painel. O dono da reuniao pode aceitar para liberar acesso ou recusar para limpar o pedido.
+
 O Discord nao permite remover diretamente a permissao **Change Nickname** de um usuario especifico. O `!unname` faz o equivalente pratico: guarda o apelido atual e restaura automaticamente se a pessoa tentar trocar. O bot precisa da permissao **Manage Nicknames** e cargo acima do alvo.
 
 O cooldown de mensagens apaga mensagens enviadas antes do tempo definido. O bot precisa da permissao **Manage Messages**.
