@@ -8,9 +8,42 @@ const voiceAuditLogAttempts = 8;
 const voiceAuditLogRetryDelayMs = 1_000;
 const voiceDisconnectAuditLogWindowMs = 30_000;
 const handledVoiceDisconnectAuditEntryIds = new Set();
+const allowedGuardianVoiceDeafens = new Map();
+const guardianVoiceDeafenAllowanceMs = 12 * 60 * 60 * 1000;
 
 export function isGuardianUserId(userId) {
   return config.guardianUserIds.includes(userId);
+}
+
+export function allowGuardianVoiceDeafen(guildId, userId, channelId) {
+  if (!isGuardianUserId(userId)) {
+    return;
+  }
+
+  const key = getGuardianVoiceDeafenKey(guildId, userId);
+  const existing = allowedGuardianVoiceDeafens.get(key);
+
+  if (existing?.timeout) {
+    clearTimeout(existing.timeout);
+  }
+
+  const timeout = setTimeout(() => {
+    allowedGuardianVoiceDeafens.delete(key);
+  }, guardianVoiceDeafenAllowanceMs);
+  timeout.unref?.();
+
+  allowedGuardianVoiceDeafens.set(key, { channelId, timeout });
+}
+
+export function clearGuardianVoiceDeafenAllowance(guildId, userId) {
+  const key = getGuardianVoiceDeafenKey(guildId, userId);
+  const existing = allowedGuardianVoiceDeafens.get(key);
+
+  if (existing?.timeout) {
+    clearTimeout(existing.timeout);
+  }
+
+  allowedGuardianVoiceDeafens.delete(key);
 }
 
 export async function removeGuardianChatMute(member) {
@@ -93,6 +126,10 @@ export async function removeGuardianVoiceDeafen(voiceState) {
     !isGuardianUserId(voiceState.id) ||
     !voiceState.serverDeaf
   ) {
+    return false;
+  }
+
+  if (isAllowedGuardianVoiceDeafen(voiceState)) {
     return false;
   }
 
@@ -404,4 +441,16 @@ function rememberVoiceDisconnectAuditEntry(entryId) {
   }, auditLogWindowMs);
 
   timeout.unref?.();
+}
+
+function isAllowedGuardianVoiceDeafen(voiceState) {
+  const allowed = allowedGuardianVoiceDeafens.get(
+    getGuardianVoiceDeafenKey(voiceState.guild.id, voiceState.id),
+  );
+
+  return Boolean(allowed && allowed.channelId === voiceState.channelId);
+}
+
+function getGuardianVoiceDeafenKey(guildId, userId) {
+  return `${guildId}:${userId}`;
 }
