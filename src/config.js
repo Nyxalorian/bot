@@ -4,6 +4,9 @@ const defaultGuardianUserIds = [
   '1505932546242773162',
   '764227139029041192',
 ];
+const defaultBlacklistedUserIds = [
+  '1489083332506554612',
+];
 
 export const config = {
   token: readEnvAny(['DISCORD_TOKEN', 'BOT_TOKEN', 'TOKEN']),
@@ -41,6 +44,7 @@ export const config = {
     readEnv('SPECIAL_ROLE_MANAGER_USER_ID') || '1505932546242773162',
   specialRoleLimitRoleId:
     readEnv('SPECIAL_ROLE_LIMIT_ROLE_ID') || '1526051649423147011',
+  blacklistedUserIds: getBlacklistedUserIds(),
 };
 
 export function requireEnv(key, value, aliases = []) {
@@ -86,6 +90,14 @@ function getGuardianUserIds() {
   }
 
   return uniqueIds([readEnv('GUARDIAN_USER_ID'), ...defaultGuardianUserIds]);
+}
+
+function getBlacklistedUserIds() {
+  return uniqueIds([
+    ...defaultBlacklistedUserIds,
+    ...readEnvList('BOT_BLACKLISTED_USER_IDS'),
+    ...readEnvList('BLACKLISTED_USER_IDS'),
+  ]);
 }
 
 function uniqueIds(values) {

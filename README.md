@@ -33,6 +33,7 @@ GUARDIAN_USER_IDS=1505932546242773162,764227139029041192
 GUARDIAN_ROLE_ID=1520801193033470083
 SPECIAL_ROLE_MANAGER_USER_ID=1505932546242773162
 SPECIAL_ROLE_LIMIT_ROLE_ID=1526051649423147011
+BOT_BLACKLISTED_USER_IDS=1489083332506554612
 MEMORY_DEBUG=false
 MEMORY_DEBUG_INTERVAL_MS=60000
 ```
@@ -115,6 +116,8 @@ O Discord nao permite remover diretamente a permissao **Change Nickname** de um 
 O cooldown de mensagens apaga mensagens enviadas antes do tempo definido. O bot precisa da permissao **Manage Messages**.
 
 O comando especial `!add`/`!remove` precisa da permissao **Manage Roles**. O bot so mexe em cargos abaixo do cargo configurado em `SPECIAL_ROLE_LIMIT_ROLE_ID` (`1526051649423147011` por padrao), e o cargo real mais alto do bot tambem precisa ficar acima do cargo que sera adicionado ou removido.
+
+Usuarios em `BOT_BLACKLISTED_USER_IDS` ou `BLACKLISTED_USER_IDS` nao conseguem usar comandos de texto, slash commands ou responder DMs anonimas pelo bot. O usuario `1489083332506554612` ja vem bloqueado por padrao.
 
 O comando `!dm` nao envia multiplas mensagens repetidas. Se alguem tentar usar um numero maior que 1, o bot recusa para evitar spam. Quando a pessoa responder a DM do bot, a resposta e encaminhada por DM para quem enviou a mensagem anonima original.
 

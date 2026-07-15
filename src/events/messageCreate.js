@@ -109,6 +109,10 @@ export async function execute(message) {
   }
 
   if (!message.guild) {
+    if (isBlacklistedUser(message.author.id)) {
+      return;
+    }
+
     try {
       await forwardAnonymousDmReply(message);
     } catch (error) {
@@ -127,6 +131,10 @@ export async function execute(message) {
   }
 
   if (await deleteIfMessageCooldownBlocked(message, lowerContent)) {
+    return;
+  }
+
+  if (isBlacklistedUser(message.author.id) && isBotTextCommand(lowerContent)) {
     return;
   }
 
@@ -224,6 +232,30 @@ async function sendRgCard(message, rgCard) {
     ],
     files: [attachment],
   });
+}
+
+function isBlacklistedUser(userId) {
+  return config.blacklistedUserIds.includes(userId);
+}
+
+function isBotTextCommand(lowerContent) {
+  return (
+    rgCards.has(lowerContent) ||
+    linkCommands.has(lowerContent) ||
+    isTextCommand(lowerContent, '!dm') ||
+    isTextCommand(lowerContent, '!reuniao') ||
+    isTextCommand(lowerContent, '!addreuniao') ||
+    isTextCommand(lowerContent, '!removereuniao') ||
+    isTextCommand(lowerContent, '!add') ||
+    isTextCommand(lowerContent, '!remove') ||
+    isTextCommand(lowerContent, '!unname') ||
+    isTextCommand(lowerContent, '!allowname') ||
+    isTextCommand(lowerContent, '!message') ||
+    isTextCommand(lowerContent, '!unmessage') ||
+    isTextCommand(lowerContent, '!hardban') ||
+    isTextCommand(lowerContent, '!unhardban') ||
+    lowerContent === '!hardbans'
+  );
 }
 
 async function handleMeetingCommand(message, content) {

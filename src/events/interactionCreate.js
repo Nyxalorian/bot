@@ -1,10 +1,24 @@
 import { Events } from 'discord.js';
+import { config } from '../config.js';
 import { errorEmbed, warningEmbed } from '../utils/embeds.js';
 
 export const name = Events.InteractionCreate;
 
 export async function execute(interaction, client) {
   if (!interaction.isChatInputCommand()) {
+    return;
+  }
+
+  if (config.blacklistedUserIds.includes(interaction.user.id)) {
+    await interaction.reply({
+      embeds: [
+        warningEmbed(
+          'Acesso bloqueado',
+          'Voce nao pode usar este bot.',
+        ),
+      ],
+      ephemeral: true,
+    });
     return;
   }
 
