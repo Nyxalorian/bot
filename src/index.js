@@ -8,7 +8,7 @@ main().catch((error) => {
 });
 
 async function main() {
-  const token = requireEnv('DISCORD_TOKEN', config.token);
+  const token = requireEnv('DISCORD_TOKEN', config.token, ['BOT_TOKEN', 'TOKEN']);
   const { Client, Collection, GatewayIntentBits, Options, Partials } = await import('discord.js');
 
   const client = new Client({

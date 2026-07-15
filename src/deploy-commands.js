@@ -3,8 +3,12 @@ import { pathToFileURL } from 'node:url';
 import { config, requireEnv } from './config.js';
 import { getCommandFiles } from './utils/loaders.js';
 
-const token = requireEnv('DISCORD_TOKEN', config.token);
-const clientId = requireEnv('DISCORD_CLIENT_ID', config.clientId);
+const token = requireEnv('DISCORD_TOKEN', config.token, ['BOT_TOKEN', 'TOKEN']);
+const clientId = requireEnv('DISCORD_CLIENT_ID', config.clientId, [
+  'DISCORD_APPLICATION_ID',
+  'APPLICATION_ID',
+  'CLIENT_ID',
+]);
 
 const commands = [];
 const commandFiles = await getCommandFiles();

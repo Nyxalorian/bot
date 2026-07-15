@@ -6,8 +6,13 @@ const defaultGuardianUserIds = [
 ];
 
 export const config = {
-  token: readEnv('DISCORD_TOKEN'),
-  clientId: readEnv('DISCORD_CLIENT_ID'),
+  token: readEnvAny(['DISCORD_TOKEN', 'BOT_TOKEN', 'TOKEN']),
+  clientId: readEnvAny([
+    'DISCORD_CLIENT_ID',
+    'DISCORD_APPLICATION_ID',
+    'APPLICATION_ID',
+    'CLIENT_ID',
+  ]),
   guildId: readEnv('DISCORD_GUILD_ID'),
   goodMorningChannelId:
     readEnv('GOOD_MORNING_CHANNEL_ID') || '1526051855480918128',
@@ -38,14 +43,28 @@ export const config = {
     readEnv('SPECIAL_ROLE_LIMIT_ROLE_ID') || '1526051649423147011',
 };
 
-export function requireEnv(key, value) {
+export function requireEnv(key, value, aliases = []) {
   if (!value) {
+    const names = [key, ...aliases].join('`, `');
+
     throw new Error(
-      `Variavel de ambiente obrigatoria ausente: ${key}. Configure no .env local ou no painel da Discloud.`,
+      `Variavel de ambiente obrigatoria ausente: \`${names}\`. Configure no .env local ou em Variables no Railway.`,
     );
   }
 
   return value;
+}
+
+function readEnvAny(keys) {
+  for (const key of keys) {
+    const value = readEnv(key);
+
+    if (value) {
+      return value;
+    }
+  }
+
+  return null;
 }
 
 function readEnv(key) {

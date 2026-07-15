@@ -37,7 +37,9 @@ MEMORY_DEBUG=false
 MEMORY_DEBUG_INTERVAL_MS=60000
 ```
 
-Nunca coloque o token direto no codigo. Em hospedagem, configure `DISCORD_TOKEN` e `DISCORD_CLIENT_ID` como variaveis de ambiente no painel da Discloud.
+Nunca coloque o token direto no codigo. No Railway, configure `DISCORD_TOKEN` e `DISCORD_CLIENT_ID` na aba **Variables** do servico.
+
+O bot tambem aceita `BOT_TOKEN` ou `TOKEN` no lugar de `DISCORD_TOKEN`, e `DISCORD_APPLICATION_ID`, `APPLICATION_ID` ou `CLIENT_ID` no lugar de `DISCORD_CLIENT_ID`. Mesmo assim, os nomes recomendados sao `DISCORD_TOKEN` e `DISCORD_CLIENT_ID`.
 
 3. Registre os slash commands:
 
@@ -50,6 +52,17 @@ npm run deploy
 ```bash
 npm start
 ```
+
+## Railway
+
+No Railway, o erro `Variavel de ambiente obrigatoria ausente: DISCORD_TOKEN` significa que o token do bot nao foi configurado nas variaveis do servico. Abra o projeto no Railway, entre no servico do bot, va em **Variables** e adicione:
+
+```bash
+DISCORD_TOKEN=token_do_bot
+DISCORD_CLIENT_ID=id_da_aplicacao
+```
+
+Depois salve e faca um redeploy/restart do servico.
 
 Durante desenvolvimento, preencha `DISCORD_GUILD_ID` para os comandos aparecerem rapido no servidor de teste. Quando quiser registrar globalmente, deixe esse campo vazio e rode `npm run deploy` novamente.
 
