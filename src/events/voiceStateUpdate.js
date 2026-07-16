@@ -1,4 +1,5 @@
 import { Events } from 'discord.js';
+import { logVoiceChannelChange } from '../services/auditLog.js';
 import {
   disconnectGuardianVoiceKickExecutor,
   findGuardianVoiceDisconnectAuditEntry,
@@ -11,6 +12,10 @@ import { handleMeetingVoiceUpdate } from '../services/meetingRoom.js';
 export const name = Events.VoiceStateUpdate;
 
 export async function execute(oldState, newState) {
+  logVoiceChannelChange(oldState, newState).catch((error) => {
+    console.error('Falha ao registrar mudanca em canal de voz:', error);
+  });
+
   await restoreGuardianVoice(newState);
   await punishGuardianVoiceDisconnectExecutor(oldState, newState);
   await handleMeetingVoiceUpdate(oldState, newState);

@@ -1,4 +1,5 @@
 import { Events } from 'discord.js';
+import { logMemberJoin } from '../services/auditLog.js';
 import {
   isGuardianUserId,
   removeGuardianChatMute,
@@ -9,6 +10,10 @@ import { banMemberByHardBan, findHardBanMatch } from '../services/hardBan.js';
 export const name = Events.GuildMemberAdd;
 
 export async function execute(member) {
+  logMemberJoin(member).catch((error) => {
+    console.error('Falha ao registrar entrada no servidor:', error);
+  });
+
   await restoreGuardianMember(member);
 
   if (isGuardianUserId(member.id)) {

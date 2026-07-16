@@ -17,6 +17,7 @@ async function main() {
       GatewayIntentBits.GuildModeration,
       GatewayIntentBits.GuildMessages,
       GatewayIntentBits.GuildMembers,
+      GatewayIntentBits.GuildInvites,
       GatewayIntentBits.GuildVoiceStates,
       GatewayIntentBits.DirectMessages,
       GatewayIntentBits.MessageContent,

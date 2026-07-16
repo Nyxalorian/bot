@@ -111,7 +111,9 @@ O cooldown de mensagens apaga mensagens enviadas antes do tempo definido. O bot 
 
 ## Logs
 
-O canal `LOG_CHANNEL_ID` (`1527085539269021838` por padrao) recebe logs de auditoria do bot: mensagens apagadas, imagens/anexos apagados, trocas de nome global ou apelido, uso de comandos do Zeca e Mimo e timeouts aplicados pelo bot. O bot precisa conseguir ver e enviar mensagens nesse canal.
+O canal `LOG_CHANNEL_ID` (`1527085539269021838` por padrao) recebe logs de auditoria do bot: mensagens apagadas, imagens/anexos apagados, mensagens editadas, entradas e saidas do servidor, entradas/saidas/mudancas de canal de voz, trocas de nome global ou apelido, mudancas de cargo, canais criados/apagados/alterados, convites criados, uso de comandos do Zeca e Mimo e timeouts aplicados pelo bot.
+
+O bot precisa conseguir ver e enviar mensagens nesse canal. Para identificar o responsavel por alteracoes de apelido, cargo e canais, ele tambem precisa da permissao **View Audit Log**. Para registrar convites criados, o codigo ja solicita o intent de convites; deixe o bot com acesso aos canais onde os convites sao criados.
 
 O comando especial `!add`/`!remove` precisa da permissao **Manage Roles**. O bot so mexe em cargos abaixo do cargo configurado em `SPECIAL_ROLE_LIMIT_ROLE_ID` (`1526051649423147011` por padrao), e o cargo real mais alto do bot tambem precisa ficar acima do cargo que sera adicionado ou removido.
 

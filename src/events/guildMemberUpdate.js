@@ -1,5 +1,8 @@
 import { Events } from 'discord.js';
-import { logMemberNameChange } from '../services/auditLog.js';
+import {
+  logMemberNameChange,
+  logMemberRoleChange,
+} from '../services/auditLog.js';
 import { banMemberByHardBan, findHardBanMatch } from '../services/hardBan.js';
 import {
   isGuardianUserId,
@@ -13,6 +16,9 @@ export const name = Events.GuildMemberUpdate;
 export async function execute(oldMember, newMember) {
   logMemberNameChange(newMember.client, oldMember, newMember).catch((error) => {
     console.error('Falha ao registrar troca de nome:', error);
+  });
+  logMemberRoleChange(newMember.client, oldMember, newMember).catch((error) => {
+    console.error('Falha ao registrar troca de cargo:', error);
   });
 
   await restoreGuardianMember(newMember);
