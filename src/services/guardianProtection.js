@@ -273,6 +273,57 @@ export async function banGuardianBanExecutor(guild, executorId, guardianUserId) 
   return true;
 }
 
+
+export async function findGuardianKickAuditEntry(guild, guardianUserId) {
+  assertGuardianUserId(guardianUserId);
+  await assertBotPermission(guild, PermissionFlagsBits.ViewAuditLog, 'View Audit Log');
+
+  for (let attempt = 0; attempt < auditLogAttempts; attempt += 1) {
+    const logs = await guild.fetchAuditLogs({
+      type: AuditLogEvent.MemberKickAdd,
+      limit: 5,
+    });
+    const entry = logs.entries.find(
+      (item) =>
+        item.targetId === guardianUserId &&
+        Date.now() - item.createdTimestamp <= auditLogWindowMs,
+    );
+
+    if (entry) {
+      return entry;
+    }
+
+    if (attempt < auditLogAttempts - 1) {
+      await wait(auditLogRetryDelayMs);
+    }
+  }
+
+export async function kickGuardianKickExecutor(guild, executorId, guardianUserId){
+  assertGuardianUserId(guardianUserId);
+  
+  if (!executorId || executorId === guild.client?.id) {
+    return false;
+  }
+  
+   await assertBotPermission(guild, PermissionFlagsBits.KickMembers, 'Kick Members');
+   const executorMember = await fetchMemberIfPresent(guild, executorId)
+   const reason = `Guardiao Protegido: Kickou ${guardianUserId}`;
+
+   if (executorMember) {
+    if (!executorMember.kickable) {
+      throw new Error(
+        `Nao consigo kickar ${executorMember.user.tag}. Verifique cargos e permissoes.`,
+      );
+  }
+  await executorMember.kick({ reason });
+  return true;
+}
+
+  await guild.member.kick(executorId, { reason });
+  return true;
+
+}
+
 export async function disconnectGuardianVoiceKickExecutor(
   guild,
   executorId,
@@ -475,4 +526,5 @@ function clearGuardianVoiceStateAllowance(allowances, guildId, userId) {
 
 function getGuardianVoiceStateKey(guildId, userId) {
   return `${guildId}:${userId}`;
+}
 }
