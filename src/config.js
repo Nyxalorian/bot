@@ -20,6 +20,7 @@ export const config = {
   goodMorningChannelId:
     readEnv('GOOD_MORNING_CHANNEL_ID') || '1526051855480918128',
   goodMorningTimeZone: readEnv('GOOD_MORNING_TIME_ZONE') || 'America/Sao_Paulo',
+  goodMorningStartDate: readEnv('GOOD_MORNING_START_DATE') || '2026-07-13',
   logChannelId:
     readEnv('LOG_CHANNEL_ID') ||
     readEnv('AUDIT_LOG_CHANNEL_ID') ||

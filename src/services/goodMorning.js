@@ -9,6 +9,8 @@ const projectRoot = path.resolve(currentDir, '..', '..');
 const stateFilePath = path.join(projectRoot, 'data', 'good-morning-state.json');
 const imagePath = path.join(projectRoot, 'assets', 'zeca-e-mimo-bom-dia.png');
 const sendHour = 6;
+const msPerDay = 24 * 60 * 60 * 1000;
+const goodMorningMessagePattern = /^Dia\s+(\d+)\s+dando Bom dia Zeca e Mimo$/i;
 const stateStore = createJsonStateStore(stateFilePath, normalizeState);
 
 let scheduleStarted = false;
@@ -22,6 +24,9 @@ export function startGoodMorningSchedule(client) {
   }
 
   scheduleStarted = true;
+  repairTodaysGoodMorningMessage(client).catch((error) => {
+    console.error('Falha ao corrigir mensagem de bom dia de hoje:', error);
+  });
   scheduleNextRun(client);
 }
 
@@ -30,6 +35,7 @@ export function getGoodMorningScheduleStats() {
     started: scheduleStarted,
     timerActive: Boolean(nextRunTimer),
     nextRunAt: nextRunAt?.toISOString() ?? null,
+    startDate: config.goodMorningStartDate,
     sending: sendingGoodMorning,
   };
 }
@@ -46,21 +52,14 @@ async function sendGoodMorning(client) {
       return;
     }
 
-    const channel = await client.channels.fetch(config.goodMorningChannelId);
-
-    if (!channel?.isTextBased() || typeof channel.send !== 'function') {
-      throw new Error(
-        `Canal de bom dia invalido ou sem suporte para envio: ${config.goodMorningChannelId}`,
-      );
-    }
-
-    const count = Math.max(0, Number(state.count) || 0) + 1;
+    const channel = await fetchGoodMorningChannel(client);
+    const count = getNextGoodMorningCount(today, state);
     const attachment = new AttachmentBuilder(imagePath, {
       name: 'zeca-e-mimo-bom-dia.png',
     });
 
     await channel.send({
-      content: `Dia ${count} dando Bom dia Zeca e Mimo`,
+      content: getGoodMorningMessageContent(count),
       files: [attachment],
     });
 
@@ -73,6 +72,105 @@ async function sendGoodMorning(client) {
   } finally {
     sendingGoodMorning = false;
   }
+}
+
+async function repairTodaysGoodMorningMessage(client) {
+  const today = getLocalDateKey(new Date(), config.goodMorningTimeZone);
+  const expectedCount = getGoodMorningCountForDate(today, config.goodMorningStartDate);
+
+  if (!expectedCount) {
+    return;
+  }
+
+  const channel = await fetchGoodMorningChannel(client);
+
+  if (typeof channel.messages?.fetch !== 'function') {
+    return;
+  }
+
+  const message = await findTodaysGoodMorningMessage(channel, client, today);
+  const match = message?.content.match(goodMorningMessagePattern);
+  const currentCount = Number(match?.[1]) || 0;
+
+  if (!message || currentCount >= expectedCount) {
+    return;
+  }
+
+  await message.edit({
+    content: getGoodMorningMessageContent(expectedCount),
+  });
+
+  const state = await readState();
+  await writeState({
+    count: Math.max(Number(state.count) || 0, expectedCount),
+    lastSentDate: today,
+  });
+
+  console.log(
+    `Mensagem de bom dia ${message.id} corrigida para Dia ${expectedCount}.`,
+  );
+}
+
+async function findTodaysGoodMorningMessage(channel, client, today) {
+  let before = null;
+
+  for (let page = 0; page < 5; page += 1) {
+    const fetchOptions = before ? { limit: 100, before } : { limit: 100 };
+    const messages = await channel.messages.fetch(fetchOptions);
+
+    if (messages.size === 0) {
+      return null;
+    }
+
+    const sortedMessages = [...messages.values()].sort((first, second) => {
+      return second.createdTimestamp - first.createdTimestamp;
+    });
+    const message = sortedMessages.find((candidate) => {
+      return (
+        candidate.author.id === client.user?.id &&
+        getLocalDateKey(candidate.createdAt, config.goodMorningTimeZone) === today &&
+        goodMorningMessagePattern.test(candidate.content)
+      );
+    });
+
+    if (message) {
+      return message;
+    }
+
+    const oldestMessage = sortedMessages.at(-1);
+    const oldestDate = getLocalDateKey(oldestMessage.createdAt, config.goodMorningTimeZone);
+
+    if (oldestDate < today) {
+      return null;
+    }
+
+    before = oldestMessage.id;
+  }
+
+  return null;
+}
+
+async function fetchGoodMorningChannel(client) {
+  const channel = await client.channels.fetch(config.goodMorningChannelId);
+
+  if (!channel?.isTextBased() || typeof channel.send !== 'function') {
+    throw new Error(
+      `Canal de bom dia invalido ou sem suporte para envio: ${config.goodMorningChannelId}`,
+    );
+  }
+
+  return channel;
+}
+
+function getGoodMorningMessageContent(count) {
+  return `Dia ${count} dando Bom dia Zeca e Mimo`;
+}
+
+function getNextGoodMorningCount(today, state) {
+  const stateCount = Math.max(0, Number(state.count) || 0) + 1;
+  const dateCount = getGoodMorningCountForDate(today, config.goodMorningStartDate) || 0;
+
+  return Math.max(stateCount, dateCount);
 }
 
 function scheduleNextRun(client) {
@@ -115,6 +213,41 @@ function normalizeState(state) {
     count: Number(state?.count) || 0,
     lastSentDate: state?.lastSentDate || null,
   };
+}
+
+function getGoodMorningCountForDate(dateKey, startDateKey) {
+  const dateDay = dateKeyToUtcDay(dateKey);
+  const startDay = dateKeyToUtcDay(startDateKey);
+
+  if (dateDay === null || startDay === null || dateDay < startDay) {
+    return null;
+  }
+
+  return dateDay - startDay + 1;
+}
+
+function dateKeyToUtcDay(dateKey) {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(dateKey || '');
+
+  if (!match) {
+    return null;
+  }
+
+  const year = Number(match[1]);
+  const month = Number(match[2]);
+  const day = Number(match[3]);
+  const utcMs = Date.UTC(year, month - 1, day);
+  const date = new Date(utcMs);
+
+  if (
+    date.getUTCFullYear() !== year ||
+    date.getUTCMonth() !== month - 1 ||
+    date.getUTCDate() !== day
+  ) {
+    return null;
+  }
+
+  return Math.floor(utcMs / msPerDay);
 }
 
 function getNextRunDate(now, timeZone) {

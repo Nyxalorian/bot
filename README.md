@@ -24,6 +24,7 @@ DISCORD_CLIENT_ID=...
 DISCORD_GUILD_ID=...
 GOOD_MORNING_CHANNEL_ID=1526051855480918128
 GOOD_MORNING_TIME_ZONE=America/Sao_Paulo
+GOOD_MORNING_START_DATE=2026-07-13
 LOG_CHANNEL_ID=1527085539269021838
 HARD_BAN_MANAGER_ROLE_ID=1520801193033470083
 DM_MANAGER_ROLE_ID=1520801193033470083
@@ -135,7 +136,7 @@ O mesmo canal tambem e moderado automaticamente: mensagens de usuarios devem ser
 
 Para essa moderacao automatica funcionar, o bot precisa das permissoes **Manage Messages** e **Moderate Members**, e o cargo dele deve ficar acima dos cargos que ele precisa mutar.
 
-O contador fica salvo em `data/good-morning-state.json` enquanto a aplicacao roda.
+O contador usa `GOOD_MORNING_START_DATE` como data do primeiro bom dia, entao ele continua certo mesmo se o bot mudar de hoster e perder o arquivo local. O arquivo `data/good-morning-state.json` ainda e usado para evitar envio duplicado no mesmo dia.
 
 ## Guardiao protegido
 
