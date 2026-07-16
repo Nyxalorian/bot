@@ -298,30 +298,33 @@ export async function findGuardianKickAuditEntry(guild, guardianUserId) {
     }
   }
 
-export async function kickGuardianKickExecutor(guild, executorId, guardianUserId){
+  return null;
+}
+
+export async function kickGuardianKickExecutor(guild, executorId, guardianUserId) {
   assertGuardianUserId(guardianUserId);
-  
-  if (!executorId || executorId === guild.client?.id) {
+
+  if (!executorId || executorId === guild.client.user?.id) {
     return false;
   }
-  
-   await assertBotPermission(guild, PermissionFlagsBits.KickMembers, 'Kick Members');
-   const executorMember = await fetchMemberIfPresent(guild, executorId)
-   const reason = `Guardiao Protegido: Kickou ${guardianUserId}`;
 
-   if (executorMember) {
+  await assertBotPermission(guild, PermissionFlagsBits.KickMembers, 'Kick Members');
+
+  const executorMember = await fetchMemberIfPresent(guild, executorId);
+  const reason = `Guardiao protegido: kickou ${guardianUserId}`;
+
+  if (executorMember) {
     if (!executorMember.kickable) {
       throw new Error(
         `Nao consigo kickar ${executorMember.user.tag}. Verifique cargos e permissoes.`,
       );
+    }
+
+    await executorMember.kick(reason);
+    return true;
   }
-  await executorMember.kick({ reason });
-  return true;
-}
 
-  await guild.member.kick(executorId, { reason });
-  return true;
-
+  return false;
 }
 
 export async function disconnectGuardianVoiceKickExecutor(
@@ -526,5 +529,4 @@ function clearGuardianVoiceStateAllowance(allowances, guildId, userId) {
 
 function getGuardianVoiceStateKey(guildId, userId) {
   return `${guildId}:${userId}`;
-}
 }
