@@ -7,6 +7,7 @@ import {
   removeGuardianVoiceMuteInGuild,
   restoreGuardianRole,
 } from '../services/guardianProtection.js';
+import { startPersistentVoicePresence } from '../services/persistentVoicePresence.js';
 
 export const name = Events.ClientReady;
 export const once = true;
@@ -18,6 +19,7 @@ export function execute(client) {
   });
 
   console.log(`Zeca e Mimo online como ${client.user.tag}.`);
+  startPersistentVoicePresence(client);
   startGoodMorningSchedule(client);
   restoreGuardianInGuilds(client).catch((error) => {
     console.error('Falha na checagem inicial do guardiao:', error);

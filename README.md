@@ -31,6 +31,7 @@ DM_MANAGER_ROLE_ID=1520801193033470083
 UNNAME_MANAGER_ROLE_ID=1520801193033470083
 MESSAGE_COOLDOWN_MANAGER_ROLE_ID=1520801193033470083
 MEETING_CATEGORY_ID=1519817688354914367
+ALWAYS_ON_VOICE_CHANNEL_ID=1527773922014007306
 GUARDIAN_USER_IDS=1505932546242773162,764227139029041192
 GUARDIAN_ROLE_ID=1520801193033470083
 SPECIAL_ROLE_MANAGER_USER_ID=1505932546242773162
@@ -101,6 +102,8 @@ src/
 Para comandos com `!`, ative o intent **Message Content** no Discord Developer Portal em **Bot > Privileged Gateway Intents**.
 
 Para as reunioes temporarias, o bot precisa das permissoes **Manage Channels** e **Move Members**. A call e apagada se ninguem entrar em 30 segundos, ou se ficar vazia por 30 segundos depois. Se alguem entrar sem permissao explicita na reuniao, inclusive administrador furando as permissoes do canal, o bot remove a pessoa da call. O `!addreuniao` e o `!removereuniao` funcionam melhor quando usados por alguem que ja tem acesso a call; se houver mais de uma reuniao ativa para a pessoa, ela deve entrar na call certa antes de usar o comando.
+
+O bot tambem entra automaticamente e permanece na call fixa configurada em `ALWAYS_ON_VOICE_CHANNEL_ID` (`1527773922014007306` por padrao). Se for movido, desconectado ou a conexao de voz cair, ele tenta voltar para essa call. Para isso, o bot precisa da permissao **Connect** nesse canal.
 
 Quem cria a reuniao recebe uma DM com um painel de administracao. Pelo painel, o dono da reuniao pode atualizar participantes/tempo, mutar e desmutar participantes da call, adicionar pessoas por ID ou mencao, remover participantes, pausar a reuniao aplicando mute e deafen nos participantes, retomar a reuniao e encerrar a call. O bot tambem aplica mute e deafen automaticamente em quem entrar enquanto a reuniao estiver pausada.
 

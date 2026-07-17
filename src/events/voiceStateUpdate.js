@@ -8,10 +8,13 @@ import {
   removeGuardianVoiceMute,
 } from '../services/guardianProtection.js';
 import { handleMeetingVoiceUpdate } from '../services/meetingRoom.js';
+import { handlePersistentVoicePresenceUpdate } from '../services/persistentVoicePresence.js';
 
 export const name = Events.VoiceStateUpdate;
 
 export async function execute(oldState, newState) {
+  handlePersistentVoicePresenceUpdate(oldState, newState);
+
   logVoiceChannelChange(oldState, newState).catch((error) => {
     console.error('Falha ao registrar mudanca em canal de voz:', error);
   });

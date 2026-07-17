@@ -40,6 +40,8 @@ export const config = {
     readEnv('HARD_BAN_MANAGER_ROLE_ID') ||
     '1520801193033470083',
   meetingCategoryId: readEnv('MEETING_CATEGORY_ID') || '1519817688354914367',
+  alwaysOnVoiceChannelId:
+    readEnv('ALWAYS_ON_VOICE_CHANNEL_ID') || '1527773922014007306',
   guardianUserIds: getGuardianUserIds(),
   guardianRoleId:
     readEnv('GUARDIAN_ROLE_ID') ||
