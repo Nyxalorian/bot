@@ -7,10 +7,10 @@ import {
 } from '@discordjs/voice';
 import { config } from '../config.js';
 
-const reconnectDelayMs = 5_000;
-const healthCheckIntervalMs = 60_000;
+const reconnectDelayMs = 2_000;
+const healthCheckIntervalMs = 30_000;
 const readyTimeoutMs = 30_000;
-const transientDisconnectTimeoutMs = 5_000;
+const transientDisconnectTimeoutMs = 8_000;
 const handledConnections = new WeakSet();
 
 const state = {
@@ -18,6 +18,7 @@ const state = {
   healthTimer: null,
   reconnectTimer: null,
   joining: null,
+  activeConnection: null,
   lastWarningByKey: new Map(),
 };
 
@@ -121,7 +122,7 @@ async function connectToPersistentVoiceChannel(reason) {
     currentConnection &&
     currentConnection.joinConfig.channelId === channel.id &&
     currentBotVoiceChannelId === channel.id &&
-    currentConnection.state.status !== VoiceConnectionStatus.Destroyed
+    currentConnection.state.status === VoiceConnectionStatus.Ready
   ) {
     attachConnectionHandlers(currentConnection);
     return;
@@ -146,13 +147,15 @@ async function connectToPersistentVoiceChannel(reason) {
     selfMute: false,
   });
 
+  state.activeConnection = connection;
   attachConnectionHandlers(connection);
 
   try {
     await entersState(connection, VoiceConnectionStatus.Ready, readyTimeoutMs);
+    clearReconnectTimer();
     console.log(`Zeca e Mimo conectado na call fixa ${channel.name} (${channel.id}).`);
   } catch (error) {
-    connection.destroy();
+    destroyConnection(connection);
     scheduleReconnect('conexao nao ficou pronta');
     throw error;
   }
@@ -180,22 +183,38 @@ function attachConnectionHandlers(connection) {
 
   handledConnections.add(connection);
 
+  connection.on(VoiceConnectionStatus.Ready, () => {
+    if (connection === state.activeConnection) {
+      clearReconnectTimer();
+    }
+  });
+
   connection.on(VoiceConnectionStatus.Disconnected, async () => {
+    if (connection !== state.activeConnection) {
+      return;
+    }
+
     try {
       await Promise.race([
-        entersState(connection, VoiceConnectionStatus.Signalling, transientDisconnectTimeoutMs),
-        entersState(connection, VoiceConnectionStatus.Connecting, transientDisconnectTimeoutMs),
+        entersState(connection, VoiceConnectionStatus.Ready, transientDisconnectTimeoutMs),
+        entersState(connection, VoiceConnectionStatus.Destroyed, transientDisconnectTimeoutMs),
       ]);
-    } catch {
-      if (connection.state.status !== VoiceConnectionStatus.Destroyed) {
-        connection.destroy();
-      }
 
+      if (connection.state.status !== VoiceConnectionStatus.Ready) {
+        scheduleReconnect('conexao de voz encerrada durante a recuperacao');
+      }
+    } catch {
+      destroyConnection(connection);
       scheduleReconnect('conexao de voz desconectada');
     }
   });
 
   connection.on(VoiceConnectionStatus.Destroyed, () => {
+    if (connection !== state.activeConnection) {
+      return;
+    }
+
+    state.activeConnection = null;
     scheduleReconnect('conexao de voz encerrada');
   });
 
@@ -204,6 +223,11 @@ function attachConnectionHandlers(connection) {
   });
 }
 
+function destroyConnection(connection) {
+  if (connection.state.status !== VoiceConnectionStatus.Destroyed) {
+    connection.destroy();
+  }
+}
 function scheduleReconnect(reason) {
   if (!state.client?.isReady() || state.reconnectTimer) {
     return;
