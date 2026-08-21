@@ -15,8 +15,6 @@ const stateStore = createJsonStateStore(stateFilePath, normalizeState);
 
 let scheduleStarted = false;
 let nextRunTimer = null;
-let nextRunAt = null;
-let sendingGoodMorning = false;
 
 export function startGoodMorningSchedule(client) {
   if (scheduleStarted) {
@@ -24,58 +22,50 @@ export function startGoodMorningSchedule(client) {
   }
 
   scheduleStarted = true;
-  repairTodaysGoodMorningMessage(client).catch((error) => {
-    console.error('Falha ao corrigir mensagem de bom dia de hoje:', error);
+  recoverTodaysGoodMorning(client).catch((error) => {
+    console.error('Falha ao recuperar o bom dia de hoje:', error);
   });
   scheduleNextRun(client);
 }
 
-export function getGoodMorningScheduleStats() {
-  return {
-    started: scheduleStarted,
-    timerActive: Boolean(nextRunTimer),
-    nextRunAt: nextRunAt?.toISOString() ?? null,
-    startDate: config.goodMorningStartDate,
-    sending: sendingGoodMorning,
-  };
-}
-
 async function sendGoodMorning(client) {
-  sendingGoodMorning = true;
+  const today = getLocalDateKey(new Date(), config.goodMorningTimeZone);
+  const state = await readState();
 
-  try {
-    const today = getLocalDateKey(new Date(), config.goodMorningTimeZone);
-    const state = await readState();
-
-    if (state.lastSentDate === today) {
-      console.log(`Bom dia de ${today} ja foi enviado.`);
-      return;
-    }
-
-    const channel = await fetchGoodMorningChannel(client);
-    const count = getNextGoodMorningCount(today, state);
-    const attachment = new AttachmentBuilder(imagePath, {
-      name: 'zeca-e-mimo-bom-dia.png',
-    });
-
-    await channel.send({
-      content: getGoodMorningMessageContent(count),
-      files: [attachment],
-    });
-
-    await writeState({
-      count,
-      lastSentDate: today,
-    });
-
-    console.log(`Bom dia enviado no canal ${config.goodMorningChannelId}: Dia ${count}.`);
-  } finally {
-    sendingGoodMorning = false;
+  if (state.lastSentDate === today) {
+    console.log(`Bom dia de ${today} ja foi enviado.`);
+    return;
   }
+
+  const channel = await fetchGoodMorningChannel(client);
+  const count = getNextGoodMorningCount(today, state);
+  const attachment = new AttachmentBuilder(imagePath, {
+    name: 'zeca-e-mimo-bom-dia.png',
+  });
+
+  await channel.send({
+    content: getGoodMorningMessageContent(count),
+    files: [attachment],
+  });
+
+  await writeState({
+    count,
+    lastSentDate: today,
+  });
+
+  console.log(`Bom dia enviado no canal ${config.goodMorningChannelId}: Dia ${count}.`);
 }
 
-async function repairTodaysGoodMorningMessage(client) {
-  const today = getLocalDateKey(new Date(), config.goodMorningTimeZone);
+async function recoverTodaysGoodMorning(client) {
+  const now = new Date();
+  const localNow = getLocalDateParts(now, config.goodMorningTimeZone);
+
+  // Antes das 06:00 ainda nao ha envio perdido para recuperar.
+  if (localNow.hour < sendHour) {
+    return;
+  }
+
+  const today = getLocalDateKey(now, config.goodMorningTimeZone);
   const expectedCount = getGoodMorningCountForDate(today, config.goodMorningStartDate);
 
   if (!expectedCount) {
@@ -89,10 +79,18 @@ async function repairTodaysGoodMorningMessage(client) {
   }
 
   const message = await findTodaysGoodMorningMessage(channel, client, today);
+
+  // Se o processo estava desligado no horario, envia o dia atual assim que voltar.
+  // sendGoodMorning tambem protege contra duplicacao usando o estado persistido.
+  if (!message) {
+    await sendGoodMorning(client);
+    return;
+  }
+
   const match = message?.content.match(goodMorningMessagePattern);
   const currentCount = Number(match?.[1]) || 0;
 
-  if (!message || currentCount >= expectedCount) {
+  if (currentCount >= expectedCount) {
     return;
   }
 
@@ -177,8 +175,6 @@ function scheduleNextRun(client) {
   const now = new Date();
   const nextRun = getNextRunDate(now, config.goodMorningTimeZone);
   const waitMs = Math.max(1000, nextRun.getTime() - now.getTime());
-  nextRunAt = nextRun;
-
   console.log(
     `Proximo bom dia agendado para ${formatLocalDateTime(
       nextRun,

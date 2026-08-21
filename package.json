@@ -1,28 +1,18 @@
 {
   "name": "zeca-e-mimo",
-  "version": "0.1.0",
-  "description": "Bot de Discord Zeca e Mimo.",
+  "version": "0.2.0",
+  "description": "Bot minimo para o Bom dia Zeca e Mimo.",
   "type": "module",
   "main": "src/index.js",
   "scripts": {
     "start": "node --max-old-space-size=64 --max-semi-space-size=2 --optimize-for-size src/index.js",
     "dev": "node --watch src/index.js",
-    "deploy": "node src/deploy-commands.js",
-    "check": "node --check src/index.js && node --check src/deploy-commands.js && node --check src/config.js && node --check src/utils/loaders.js && node --check src/utils/jsonState.js && node --check src/utils/discord.js && node --check src/utils/embeds.js && node --check src/services/anonymousDm.js && node --check src/services/auditLog.js && node --check src/services/goodMorning.js && node --check src/services/goodMorningModeration.js && node --check src/services/guardianProtection.js && node --check src/services/hardBan.js && node --check src/services/meetingRoom.js && node --check src/services/memoryDiagnostics.js && node --check src/services/messageCooldown.js && node --check src/services/nicknameLock.js && node --check src/services/persistentVoicePresence.js && node --check src/events/ready.js && node --check src/events/interactionCreate.js && node --check src/events/messageCreate.js && node --check src/events/messageDelete.js && node --check src/events/messageDeleteBulk.js && node --check src/events/messageUpdate.js && node --check src/events/guildBanAdd.js && node --check src/events/guildMemberAdd.js && node --check src/events/guildMemberRemove.js && node --check src/events/guildMemberUpdate.js && node --check src/events/userUpdate.js && node --check src/events/voiceStateUpdate.js && node --check src/events/channelCreate.js && node --check src/events/channelDelete.js && node --check src/events/channelUpdate.js && node --check src/events/inviteCreate.js && node --check src/commands/ping.js && node --check src/commands/sobre.js"
+    "check": "node --check src/index.js && node --check src/config.js && node --check src/utils/jsonState.js && node --check src/services/goodMorning.js && node --check src/services/goodMorningModeration.js"
   },
-  "keywords": [
-    "discord",
-    "bot",
-    "discord.js"
-  ],
-  "author": "",
-  "license": "MIT",
   "engines": {
     "node": ">=22.12.0"
   },
   "dependencies": {
-    "@discordjs/voice": "^0.19.2",
-    "@noble/ciphers": "^1.0.0",
     "discord.js": "^14.26.5",
     "dotenv": "^17.2.0"
   },
